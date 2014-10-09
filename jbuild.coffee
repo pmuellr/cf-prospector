@@ -21,14 +21,19 @@ AtomShellPlatforms = [
 
 #-------------------------------------------------------------------------------
 tasks = defineTasks exports,
+  run:       "run the app"
   build:     "run a build"
   watch:     "watch for source file changes, then run build"
   buildAtom: "get the latest versions of atom-shell"
   buildIcns: "build .icns file on a Mac"
 
-WatchSpec = "lib lib/**/* www www/**/*"
+WatchSpec = "app app/**/* platform platform/**/*"
 
 mkdir "-p", "tmp"
+
+#-------------------------------------------------------------------------------
+tasks.run = ->
+  exec "dist/darwin-x64/cf-prospector.app/Contents/MacOS/cf-prospector"
 
 #-------------------------------------------------------------------------------
 tasks.build = ->
@@ -36,6 +41,9 @@ tasks.build = ->
 
   unless test "-d", "node_modules"
     exec "npm install"
+
+  cleanDir          "dist/darwin-x64/cf-prospector.app/Contents/Resources/app"
+  cp "-R", "app/*", "dist/darwin-x64/cf-prospector.app/Contents/Resources/app"
 
 oldBuildJunk = ->
   cleanDir "www"
@@ -58,7 +66,7 @@ oldBuildJunk = ->
 #-------------------------------------------------------------------------------
 watchIter = ->
   tasks.build()
-  tasks.serve()
+  # tasks.serve()
   # tasks.test()
 
 #-------------------------------------------------------------------------------
@@ -82,40 +90,46 @@ tasks.buildAtom = ->
     log "----------------------------------------------"
     log "building atom-shell v#{AtomShellVersion} for #{platform}"
 
-    cleanDir "atom-bin/#{platform}"
+    cleanDir "dist/#{platform}"
 
     file    = "atom-shell-v#{AtomShellVersion}-#{platform}.zip"
-    options = "--output atom-bin/#{file} --location"
+    options = "--output dist/#{file} --location"
     url     = "#{urlPrefix}#{AtomShellVersion}/#{file}"
 
-    unless test "-f", "atom-bin/#{file}"
+    unless test "-f", "dist/#{file}"
       log "getting atom-shell v#{AtomShellVersion} for #{platform}"
       exec "curl #{options} #{url}"
 
-    exec "unzip -q atom-bin/#{file} -d atom-bin/#{platform}"
+    exec "unzip -q dist/#{file} -d dist/#{platform}"
 
     buildPlatform[platform]()
 
   log ""
+  tasks.build()
 
   return
 
 #-------------------------------------------------------------------------------
 buildPlatform_darwin_x64 = ->
-  cp "-f", "platform/darwin-x64/cf-prospector.icns",
-           "atom-bin/darwin-x64/Atom.app/Contents/Resources/"
+  mv "dist/darwin-x64/Atom.app",
+     "dist/darwin-x64/cf-prospector.app"
 
-  cp "-f", "platform/darwin-x64/Info.plist",
-           "atom-bin/darwin-x64/Atom.app/Contents"
+  src = "platform/darwin-x64"
+  dst = "dist/darwin-x64/cf-prospector.app"
+  cp "-f", "#{src}/cf-prospector.icns",
+           "#{dst}/Contents/Resources/"
 
-#  mv "atom-bin/darwin-x64/Atom.app/Contents/MacOS/Atom",
-#     "atom-bin/darwin-x64/Atom.app/Contents/MacOS/cf-prospector"
+  cp "-f", "#{src}/Info.plist",
+           "#{dst}/Contents"
 
-  mv "atom-bin/darwin-x64/Atom.app",
-     "atom-bin/darwin-x64/cf-prospector.app"
+  mkdir "-p",              "#{dst}/Contents/Resources/app/node_modules"
+  cp "-R", "node_modules", "#{dst}/Contents/Resources/app/node_modules"
 
-  rm "atom-bin/darwin-x64/LICENSE"
-  rm "atom-bin/darwin-x64/version"
+  mv "#{dst}/Contents/MacOS/Atom",
+     "#{dst}/Contents/MacOS/cf-prospector"
+
+  rm "dist/darwin-x64/LICENSE"
+  rm "dist/darwin-x64/version"
 
 #-------------------------------------------------------------------------------
 buildPlatform_linux_ia32 = ->

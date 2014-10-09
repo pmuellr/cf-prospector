@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>cf-prospector</string>
 	<key>CFBundleExecutable</key>
-	<string>Atom</string>
+	<string>cf-prospector</string>
 	<key>CFBundleIconFile</key>
 	<string>cf-prospector.icns</string>
 	<key>CFBundleIdentifier</key>
